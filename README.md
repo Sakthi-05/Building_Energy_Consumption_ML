@@ -1,82 +1,63 @@
 # Building Energy Consumption Prediction
 
-A machine learning project for predicting building energy consumption using historical meter readings, weather information, building metadata, and time-based features.
+A machine learning project for predicting building energy consumption using **weather conditions, building metadata, and time-based features**. The project compares Linear Regression, XGBoost, and LightGBM models and evaluates their performance using multiple regression metrics.
 
-The project compares three regression models:
+---
 
-1. **Linear Regression** — baseline model
-2. **XGBoost** — gradient boosting model
-3. **LightGBM** — gradient boosting model
+## Results
 
-The models are evaluated using **MAE, MSE, RMSE, and R² Score**, with the model achieving the highest R² score selected as the best-performing model.
+Three regression models were trained and evaluated on the processed dataset.
+
+| Model             |        MAE |       RMSE |         R² |
+| ----------------- | ---------: | ---------: | ---------: |
+| Linear Regression |     318.81 |    1074.41 |    -1.5398 |
+| **XGBoost**       | **115.62** | **325.51** | **0.7669** |
+| LightGBM          |     165.39 |     452.80 |     0.5489 |
+
+### Best Performing Model
+
+**XGBoost**
+
+* **Test R²:** 0.7669
+* **Test RMSE:** 325.51
+* **Test MAE:** 115.62
+* **Cross-validation R²:** 0.8265
+* **Best configuration:** `max_depth=10`, `n_estimators=200`
+
+XGBoost achieved the strongest test-set performance among the three evaluated models.
 
 ---
 
 ## Project Overview
 
-Building energy consumption depends on several factors such as building characteristics, weather conditions, time of day, seasonality, and building usage.
+Building energy consumption is influenced by several factors, including building characteristics, weather conditions, time of day, seasonality, and usage patterns.
 
-This project combines these different sources of information and applies machine learning techniques to predict the `meter_reading` value.
+This project combines these sources of information and builds regression models to predict the `meter_reading` value.
 
-The workflow includes:
+The workflow covers:
 
-* Loading the datasets
-* Sampling the training data for performance
-* Merging building and weather information
-* Data cleaning
-* Timestamp feature engineering
+* Data integration and preprocessing
+* Sampling for computational efficiency
+* Data cleaning and outlier handling
+* Timestamp-based feature engineering
 * Categorical feature encoding
-* Memory optimization
-* Log transformation of the target variable
-* Train/test splitting
 * Missing-value imputation
-* Model training and comparison
-* Hyperparameter tuning using cross-validation
-* Model evaluation
-* Visualization of results
+* Memory optimization
+* Target transformation
+* Model training
+* Hyperparameter tuning with cross-validation
+* Model comparison
+* Performance evaluation
+* Visualization
 * Feature importance analysis
-
----
-
-## Models Used
-
-### 1. Linear Regression
-
-Linear Regression is used as the baseline model.
-
-It assumes a linear relationship between the input features and the target variable.
-
-A `StandardScaler` is applied before training because Linear Regression is sensitive to differences in feature scales.
-
-### 2. XGBoost
-
-XGBoost is a gradient boosting algorithm based on decision trees.
-
-The project evaluates different combinations of:
-
-* `max_depth`: 6, 8, 10
-* `n_estimators`: 100, 200
-* `learning_rate`: 0.05
-
-Three-fold cross-validation is used to select the best configuration.
-
-### 3. LightGBM
-
-LightGBM is another gradient boosting framework designed for efficient training on tabular datasets.
-
-The project evaluates:
-
-* `max_depth`: 8, 12, 16
-* `n_estimators`: 100, 200
-* `learning_rate`: 0.05
-
-Three-fold cross-validation is used to select the best configuration.
 
 ---
 
 ## Dataset
 
-The project uses three CSV files:
+The project uses data from the **ASHRAE Great Energy Predictor III** dataset.
+
+Three datasets are required:
 
 ```text
 train.csv
@@ -86,9 +67,9 @@ building_metadata.csv
 
 ### `train.csv`
 
-Contains the energy meter readings used as the prediction target.
+Contains energy meter readings used as the prediction target.
 
-The target variable is:
+**Target variable:**
 
 ```text
 meter_reading
@@ -96,13 +77,15 @@ meter_reading
 
 ### `weather_train.csv`
 
-Contains weather-related information associated with the corresponding site and timestamp.
+Contains weather information associated with sites and timestamps.
 
 ### `building_metadata.csv`
 
-Contains metadata describing the buildings.
+Contains information describing individual buildings.
 
-The datasets are merged using:
+### Data Integration
+
+The datasets are connected using:
 
 ```text
 building_id
@@ -114,69 +97,84 @@ and:
 site_id + timestamp
 ```
 
+> **Note:** The original training dataset contains approximately **20.2 million records**. To make local execution computationally practical, this implementation samples **50,000 records** before performing the merge and subsequent processing.
+
 ---
 
-## Project Structure
+## Machine Learning Pipeline
 
 ```text
-Building-Energy-Prediction/
-│
-├── energy_prediction.py
-├── requirements.txt
-├── README.md
-│
-├── train.csv
-├── weather_train.csv
-└── building_metadata.csv
+Raw Data
+   │
+   ▼
+Data Sampling
+   │
+   ▼
+Data Integration
+   │
+   ├── Train Data
+   ├── Weather Data
+   └── Building Metadata
+   │
+   ▼
+Data Cleaning
+   │
+   ▼
+Feature Engineering
+   │
+   ▼
+Categorical Encoding
+   │
+   ▼
+Missing Value Imputation
+   │
+   ▼
+Log Transformation
+   │
+   ▼
+Train / Test Split
+   │
+   ├──────────────┬──────────────┐
+   ▼              ▼              ▼
+Linear         XGBoost        LightGBM
+Regression
+   │              │              │
+   └──────────────┼──────────────┘
+                  ▼
+           Model Evaluation
+                  │
+                  ▼
+       Performance Comparison
+                  │
+                  ▼
+       Feature & Error Analysis
 ```
 
 ---
 
-## Data Processing Pipeline
+## Data Processing
 
-### 1. Load Data
+### 1. Data Sampling
 
-The three datasets are loaded using Pandas:
-
-```python
-train = pd.read_csv("train.csv")
-weather = pd.read_csv("weather_train.csv")
-building = pd.read_csv("building_metadata.csv")
-```
-
-### 2. Sampling
-
-A sample of 50,000 records is selected from the training dataset to improve execution performance:
+The original training dataset contains approximately 20 million records. A reproducible sample of 50,000 records is selected to reduce local computation and memory requirements.
 
 ```python
 train = train.sample(n=50000, random_state=42)
 ```
 
-### 3. Merge Datasets
+### 2. Data Cleaning
 
-The training data is merged with building metadata and weather data.
-
-```text
-train
-  │
-  ├── building_id ──→ building_metadata
-  │
-  └── site_id + timestamp ──→ weather_train
-```
-
-### 4. Data Cleaning
-
-The project removes:
+The preprocessing pipeline removes:
 
 * Zero meter readings
 * Negative meter readings
 * The top 1% of extreme meter-reading values
 
-This reduces the effect of faulty readings and extreme outliers.
+The dataset contained **4,631 zero readings and no negative readings** before cleaning. After cleaning, 44,915 records remained.
 
-### 5. Feature Engineering
+### 3. Feature Engineering
 
-The timestamp is converted into several useful features:
+Timestamp information is converted into useful temporal features:
 
 ```text
 hour
@@ -196,19 +194,19 @@ time_period
 3 → Evening
 ```
 
-### 6. Categorical Encoding
+### 4. Categorical Encoding
 
 The `primary_use` feature is converted into numerical values using `LabelEncoder`.
 
-### 7. Missing Value Handling
+### 5. Missing Values
 
 Missing values are handled using median imputation.
 
-The imputer is fitted only on the training data and then applied to the test data to avoid data leakage.
+The imputer is fitted on the training data and subsequently applied to the test data to avoid data leakage.
 
-### 8. Target Transformation
+### 6. Target Transformation
 
-Because energy consumption can be highly skewed, the target is transformed using:
+Because energy consumption can be highly skewed, the target is transformed using a logarithmic transformation:
 
 ```python
 y = np.log1p(df["meter_reading"])
@@ -222,118 +220,169 @@ np.expm1()
 
 ---
 
-## Model Evaluation
+## Models
 
-The following metrics are calculated for every model:
+### 1. Linear Regression
 
-### MAE — Mean Absolute Error
+Linear Regression is used as the baseline model.
 
-Measures the average absolute difference between actual and predicted values.
+A `StandardScaler` is applied before training to normalize the numerical feature scales.
 
-**Lower is better.**
+### 2. XGBoost
 
-### MSE — Mean Squared Error
+XGBoost is used as a gradient-boosting regression model.
 
-Measures the average squared prediction error.
+The following hyperparameters are explored:
 
-**Lower is better.**
+```text
+max_depth      → 6, 8, 10
+n_estimators   → 100, 200
+learning_rate  → 0.05
+```
 
-### RMSE — Root Mean Squared Error
+Three-fold cross-validation is used for hyperparameter selection.
 
-The square root of MSE.
+**Best configuration:**
 
-It gives greater importance to larger errors.
+```text
+max_depth = 10
+n_estimators = 200
+learning_rate = 0.05
+```
 
-**Lower is better.**
+**Cross-validation R²:** `0.8265`
 
-### R² Score
+**Test R²:** `0.7669`
 
-Measures the proportion of variance explained by the model.
+### 3. LightGBM
 
-A value closer to `1.0` indicates stronger explanatory performance.
+LightGBM is used as a second gradient-boosting approach designed for efficient tabular machine learning.
 
-**Higher is better.**
+The following configurations are explored:
+
+```text
+max_depth      → 8, 12, 16
+n_estimators   → 100, 200
+learning_rate  → 0.05
+```
+
+Three-fold cross-validation is used for hyperparameter selection.
+
+**Best configuration:**
+
+```text
+max_depth = 16
+n_estimators = 200
+learning_rate = 0.05
+```
+
+**Cross-validation R²:** `0.7294`
+
+**Test R²:** `0.5489`
 
 ---
 
-## Model Selection
+## Model Evaluation
 
-After evaluating all three models, the project selects the model with the highest R² score:
+The models are evaluated using four regression metrics.
 
-```python
-best_model_name = result_df["R2 Score"].idxmax()
-```
+| Metric   | Description                                   | Better Value |
+| -------- | --------------------------------------------- | ------------ |
+| **MAE**  | Average absolute prediction error             | Lower        |
+| **MSE**  | Average squared prediction error              | Lower        |
+| **RMSE** | Square root of MSE; emphasizes larger errors  | Lower        |
+| **R²**   | Proportion of variance explained by the model | Higher       |
 
-The final model comparison is displayed as:
+### Evaluation Results
 
 ```text
 ================ MODEL COMPARISON ================
 
-                    MAE       MSE      RMSE    R2 Score
-Linear Regression     ...
-XGBoost               ...
-LightGBM              ...
+                         MAE          MSE       RMSE       R²
+Linear Regression      318.81    1.15e+06    1074.41   -1.5398
+XGBoost                115.62    1.06e+05     325.51    0.7669
+LightGBM               165.39    2.05e+05     452.80    0.5489
 ```
 
 ---
 
-## Visualizations
+## Visual Analysis
 
-The project generates several visualizations to analyze model performance.
+The project generates visualizations to further analyze model behavior and performance:
 
 ### Correlation Matrix
 
-Shows the correlation between the training features and the transformed target.
+Examines relationships between input features and the transformed target.
 
-### RMSE Comparison
+### Model Performance Comparison
 
-Compares the RMSE values of the three models.
-
-### R² Comparison
-
-Compares the R² scores of the three models.
+Compares RMSE and R² across the three models.
 
 ### Predicted vs Actual
 
-Compares the predicted energy consumption against actual energy consumption for the best-performing model.
+Visualizes predicted energy consumption against actual values for the selected model.
 
-### Residual Plot
+### Residual Analysis
 
-Shows the difference between actual and predicted values.
+Examines the difference between actual and predicted values.
 
 ### Feature Importance
 
-For tree-based models such as XGBoost and LightGBM, the project displays the top 10 most important features.
+Displays the most influential features identified by tree-based models such as XGBoost and LightGBM.
+
+---
+
+## Project Structure
+
+```text
+Building_Energy_Consumption_ML/
+│
+├── energy_prediction.py
+├── requirements.txt
+├── README.md
+├── LICENSE
+├── .gitignore
+│
+└── data/
+    ├── train.csv
+    ├── weather_train.csv
+    └── building_metadata.csv
+```
+
+> The raw dataset is not included in the repository if it exceeds GitHub's practical repository size limits. Download the required ASHRAE files separately and place them in the expected data location.
 
 ---
 
 ## Installation
 
-### 1. Clone or download the project
+### 1. Clone the repository
 
-Open the project folder in VS Code.
+```bash
+git clone https://github.com/Sakthi-05/Building_Energy_Consumption_ML.git
+cd Building_Energy_Consumption_ML
+```
 
 ### 2. Create a virtual environment
 
-On Windows:
+**Windows:**
 
 ```powershell
 python -m venv venv
 ```
 
-### 3. Activate the virtual environment
+### 3. Activate the environment
 
 ```powershell
 .\venv\Scripts\Activate.ps1
 ```
 
-If PowerShell blocks script execution, run:
+If PowerShell blocks script execution:
 
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 ```
 
-and activate the environment again:
+Then activate the environment again:
 
 ```powershell
 .\venv\Scripts\Activate.ps1
@@ -349,7 +398,7 @@ pip install -r requirements.txt
 
 ## Requirements
 
-The project requires:
+The project uses:
 
 ```text
 pandas
@@ -365,16 +414,15 @@ lightgbm
 
 ## Running the Project
 
-Make sure the following files are present in the project directory:
+Make sure the required dataset files are available:
 
 ```text
 train.csv
 weather_train.csv
 building_metadata.csv
-energy_prediction.py
 ```
 
-Activate the virtual environment and run:
+Then run:
 
 ```powershell
 python energy_prediction.py
@@ -383,148 +431,99 @@ python energy_prediction.py
 The program will:
 
 1. Load the datasets
-2. Process and clean the data
-3. Generate features
-4. Train Linear Regression
-5. Tune and train XGBoost
-6. Tune and train LightGBM
-7. Compare model performance
-8. Select the model with the highest R² score
-9. Display evaluation visualizations
-10. Display feature importance when applicable
+2. Sample the training data
+3. Merge weather and building information
+4. Clean the data
+5. Generate temporal and categorical features
+6. Perform train/test splitting
+7. Train Linear Regression
+8. Tune XGBoost using cross-validation
+9. Tune LightGBM using cross-validation
+10. Compare model performance
+11. Display evaluation results
+12. Generate visualizations
+13. Analyze feature importance
 
 ---
 
 ## Expected Output
 
-The terminal displays information such as:
+A typical execution produces output similar to:
 
 ```text
-Original Train Shape: ...
-
-Merged Shape: ...
+Original Train Shape: (20216100, 4)
+Merged Shape: (50000, 16)
 
 ===== meter_reading Diagnostics =====
-Zero readings    : ...
-Negative readings: ...
-After cleaning   : ...
+Zero readings    : 4631
+Negative readings: 0
+After cleaning   : (44915, 16)
 
-Train Size: ...
-Test Size : ...
+Train Size: (35932, 20)
+Test Size : (8983, 20)
 
 Training Linear Regression...
-  R²: ...
-  RMSE: ...
+R²: -1.5398
+RMSE: 1074.41
 
 Tuning XGBoost...
-  Best params : ...
-  CV R²       : ...
-  Test R²: ...
-  RMSE: ...
+Best params: max_depth=10, n_estimators=200
+CV R²: 0.8265
+Test R²: 0.7669
+RMSE: 325.51
 
 Tuning LightGBM...
-  Best params : ...
-  CV R²       : ...
-  Test R²: ...
-  RMSE: ...
+Best params: max_depth=16, n_estimators=200
+CV R²: 0.7294
+Test R²: 0.5489
+RMSE: 452.80
 
 ================ MODEL COMPARISON ================
 
-...
-
-Best Model: ...
+Best Model: XGBoost
 ```
 
-The exact values depend on the dataset and execution environment.
+Exact values may vary depending on the dataset, environment, and implementation.
 
 ---
 
 ## Technologies Used
 
-| Technology   | Purpose                                                    |
-| ------------ | ---------------------------------------------------------- |
-| Python       | Programming language                                       |
-| Pandas       | Data loading and manipulation                              |
-| NumPy        | Numerical operations                                       |
-| Scikit-learn | Preprocessing, splitting, evaluation and Linear Regression |
-| XGBoost      | Gradient boosting regression                               |
-| LightGBM     | Gradient boosting regression                               |
-| Matplotlib   | Data visualization                                         |
-| Seaborn      | Statistical visualization                                  |
+| Technology       | Purpose                                         |
+| ---------------- | ----------------------------------------------- |
+| **Python**       | Core programming language                       |
+| **Pandas**       | Data loading and manipulation                   |
+| **NumPy**        | Numerical computation                           |
+| **Scikit-learn** | Preprocessing, evaluation and Linear Regression |
+| **XGBoost**      | Gradient-boosting regression                    |
+| **LightGBM**     | Gradient-boosting regression                    |
+| **Matplotlib**   | Data visualization                              |
+| **Seaborn**      | Statistical visualization                       |
 
 ---
 
-## Machine Learning Workflow
+## Key Takeaways
 
-```text
-                ┌─────────────────────┐
-                │      Raw Data       │
-                └──────────┬──────────┘
-                           │
-                           ▼
-                ┌─────────────────────┐
-                │  Data Integration   │
-                │ Train + Weather +   │
-                │ Building Metadata   │
-                └──────────┬──────────┘
-                           │
-                           ▼
-                ┌─────────────────────┐
-                │   Data Cleaning     │
-                │ Zero/Negative/      │
-                │ Outlier Removal     │
-                └──────────┬──────────┘
-                           │
-                           ▼
-                ┌─────────────────────┐
-                │ Feature Engineering │
-                │ Time + Categorical  │
-                │ Features            │
-                └──────────┬──────────┘
-                           │
-                           ▼
-                ┌─────────────────────┐
-                │ Train/Test Split    │
-                └──────────┬──────────┘
-                           │
-                           ▼
-              ┌───────────────────────────┐
-              │       Model Training      │
-              ├─────────────┬─────────────┤
-              │             │             │
-              ▼             ▼             ▼
-        Linear Reg.      XGBoost       LightGBM
-              │             │             │
-              └─────────────┼─────────────┘
-                            │
-                            ▼
-                ┌─────────────────────┐
-                │ Model Evaluation    │
-                │ MAE / MSE / RMSE /  │
-                │ R²                  │
-                └──────────┬──────────┘
-                           │
-                           ▼
-                ┌─────────────────────┐
-                │ Best Model Selection│
-                └──────────┬──────────┘
-                           │
-                           ▼
-                ┌─────────────────────┐
-                │ Visual Analysis &   │
-                │ Feature Importance  │
-                └─────────────────────┘
-```
+* Tree-based boosting models substantially outperformed the Linear Regression baseline.
+* **XGBoost achieved the highest test R² (0.7669)** among the evaluated models.
+* Feature engineering from timestamp data provides additional information for predicting energy consumption.
+* Cross-validation was used during hyperparameter tuning for XGBoost and LightGBM.
+* The preprocessing pipeline includes explicit handling of missing values, outliers, categorical variables, and target skew.
 
 ---
 
-## Notes
+## Future Improvements
 
-* The current implementation samples **50,000 training records** before merging to improve execution performance.
-* The target variable is log-transformed before model training.
-* Cross-validation is used for XGBoost and LightGBM hyperparameter selection.
-* The best model is selected using the highest test-set R² score.
-* Graph windows may need to be closed for execution to continue to the next visualization.
+Potential extensions include:
+
+* Training on a larger portion of the original dataset
+* More extensive hyperparameter optimization
+* Additional temporal and weather-derived features
+* Comparing additional regression algorithms
+* Improving model validation methodology
+* Building a prediction API
+* Deploying the trained model as a web application
+* Experimenting with ensemble methods
 
 ---
 
@@ -532,11 +531,15 @@ The exact values depend on the dataset and execution environment.
 
 **Sakthi Mageswari V.**
 
-Computer Science Engineering
-Bengaluru, Karnataka
+Computer Science Engineering Student
+Bengaluru, India
+
+[GitHub](https://github.com/Sakthi-05)
 
 ---
 
 ## License
 
-This project is intended for academic and educational purposes.
+This project is licensed under the MIT License.
+
+Built for academic learning and experimentation in machine learning and energy prediction.
