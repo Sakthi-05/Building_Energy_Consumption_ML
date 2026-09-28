@@ -1,0 +1,5 @@
+venv/
+
+train.csv
+weather_train.csv
+building_metadata.csv
